@@ -12,7 +12,7 @@
   "scripts": {
     "compile": "node scripts/compile.js",
     "test": "npm run compile && node --test --test-concurrency=1 test/*.test.js",
-    "chain": "ganache --wallet.mnemonic 'test test test test test test test test test test test junk' --wallet.totalAccounts 10 --wallet.defaultBalance 1000 --chain.chainId 31337 --server.host 127.0.0.1 --server.port 8545",
+    "chain": "node scripts/chain.js",
     "deploy": "node scripts/deploy.js",
     "thunderd": "node bin/thunderd.js",
     "thunder-cli": "node bin/thunder-cli.js"

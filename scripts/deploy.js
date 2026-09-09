@@ -30,15 +30,17 @@ Options:
   }
   const provider = new JsonRpcProvider(options.rpc);
   const wallet = Wallet.fromPhrase(options.mnemonic).connect(provider);
-  const recipient = options.recipient || wallet.address;
+  const recipients = String(options.recipient || wallet.address).split(",").map((value) => value.trim()).filter(Boolean);
   const factory = new ContractFactory(artifact("THDToken").abi, artifact("THDToken").bytecode, wallet);
   const token = await factory.deploy();
   await token.waitForDeployment();
-  await (await token.mint(recipient, parseEther(options.amount))).wait();
+  for (const recipient of recipients) {
+    await (await token.mint(recipient, parseEther(options.amount))).wait();
+  }
   const network = await provider.getNetwork();
   const deployment = {
     tokenAddress: await token.getAddress(),
-    recipient,
+    recipients,
     amountTHD: options.amount,
     deployer: wallet.address,
     chainId: network.chainId.toString(),
@@ -46,7 +48,7 @@ Options:
   };
   writeJson(path.resolve(options.out), deployment, 0o644);
   console.log(`THD deployed: ${deployment.tokenAddress}`);
-  console.log(`Credited ${deployment.amountTHD} THD to ${deployment.recipient}`);
+  for (const recipient of deployment.recipients) console.log(`Credited ${deployment.amountTHD} THD to ${recipient}`);
   console.log(`Saved ${path.resolve(options.out)}`);
 }
 
