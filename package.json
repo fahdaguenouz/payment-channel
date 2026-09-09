@@ -1,0 +1,30 @@
+{
+  "name": "thunder-payment-channel",
+  "version": "0.0.1",
+  "description": "A two-party THD payment channel for a local Ethereum network",
+  "license": "MIT",
+  "private": true,
+  "type": "commonjs",
+  "bin": {
+    "thunderd": "bin/thunderd.js",
+    "thunder-cli": "bin/thunder-cli.js"
+  },
+  "scripts": {
+    "compile": "node scripts/compile.js",
+    "test": "npm run compile && node --test --test-concurrency=1 test/*.test.js",
+    "chain": "ganache --wallet.mnemonic 'test test test test test test test test test test test junk' --wallet.totalAccounts 10 --wallet.defaultBalance 1000 --chain.chainId 31337 --server.host 127.0.0.1 --server.port 8545",
+    "deploy": "node scripts/deploy.js",
+    "thunderd": "node bin/thunderd.js",
+    "thunder-cli": "node bin/thunder-cli.js"
+  },
+  "dependencies": {
+    "ethers": "6.15.0"
+  },
+  "devDependencies": {
+    "ganache": "7.9.2",
+    "solc": "0.8.30"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
