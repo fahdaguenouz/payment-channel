@@ -14,11 +14,12 @@
     "test": "npm run compile && node --test --test-concurrency=1 test/*.test.js",
     "chain": "node scripts/chain.js",
     "deploy": "node scripts/deploy.js",
+    "mine": "node scripts/mine.js",
     "thunderd": "node bin/thunderd.js",
     "thunder-cli": "node bin/thunder-cli.js"
   },
   "dependencies": {
-    "ethers": "6.15.0"
+    "ethers": "6.17.0"
   },
   "devDependencies": {
     "ganache": "7.9.2",

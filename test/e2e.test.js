@@ -9,6 +9,7 @@ const ganache = require("ganache");
 const { ContractFactory, JsonRpcProvider, Wallet, parseEther } = require("ethers");
 const { artifact } = require("../lib/contracts");
 const { ThunderNode } = require("../lib/daemon");
+const { requestJson } = require("../lib/common");
 const { freePort } = require("./helpers");
 
 const CHAIN_MNEMONIC = "test test test test test test test test test test test junk";
@@ -34,6 +35,8 @@ test("complete audited two-node payment lifecycle", async (context) => {
   const nodeB = new ThunderNode({ ...common, dataDir: path.join(temporary, "b") });
   await nodeA.start();
   await nodeB.start();
+  const apiA = `http://127.0.0.1:${nodeA.port}`;
+  const apiB = `http://127.0.0.1:${nodeB.port}`;
   context.after(async () => {
     await Promise.all([nodeA.stop(), nodeB.stop()]);
     provider.destroy();
@@ -41,32 +44,32 @@ test("complete audited two-node payment lifecycle", async (context) => {
     fs.rmSync(temporary, { recursive: true, force: true });
   });
 
-  await nodeA.importWallet({ seedphrase: walletA.mnemonic.phrase });
-  await nodeB.importWallet({ seedphrase: walletB.mnemonic.phrase });
-  await nodeA.connect({ peer: `127.0.0.1:${nodeB.port}` });
-  assert.equal((await nodeA.infos()).connectedNode, `http://127.0.0.1:${nodeB.port}`);
-  assert.equal((await nodeB.infos()).connectedNode, `http://127.0.0.1:${nodeA.port}`);
+  await requestJson(`${apiA}/wallet/import`, { body: { seedphrase: walletA.mnemonic.phrase } });
+  await requestJson(`${apiB}/wallet/import`, { body: { seedphrase: walletB.mnemonic.phrase } });
+  await requestJson(`${apiA}/connect`, { body: { peer: `127.0.0.1:${nodeB.port}` } });
+  assert.equal((await requestJson(`${apiA}/infos`)).connectedNode, apiB);
+  assert.equal((await requestJson(`${apiB}/infos`)).connectedNode, apiA);
 
-  const opened = await nodeA.openChannel({ amount: "10" });
+  const opened = await requestJson(`${apiA}/channel/open`, { body: { amount: "10" } });
   assert.equal(opened.status, "ACTIVE");
-  assert.equal((await nodeA.balance()).walletTHD, "90.0");
-  assert.equal((await nodeA.balance()).totalTHD, "100.0");
-  await assert.rejects(nodeA.pay({ amount: "11" }), /exceeds channel balance/);
+  assert.equal((await requestJson(`${apiA}/balance`)).walletTHD, "90.0");
+  assert.equal((await requestJson(`${apiA}/balance`)).totalTHD, "100.0");
+  await assert.rejects(requestJson(`${apiA}/pay`, { body: { amount: "11" } }), /exceeds channel balance/);
 
-  const paid = await nodeA.pay({ amount: "5" });
+  const paid = await requestJson(`${apiA}/pay`, { body: { amount: "5" } });
   assert.equal(paid.nonce, "1");
-  assert.equal((await nodeA.balance()).channelTHD, "5.0");
-  assert.equal((await nodeA.balance()).totalTHD, "95.0");
-  assert.equal((await nodeB.balance()).channelTHD, "5.0");
-  assert.equal((await nodeB.balance()).totalTHD, "105.0");
+  assert.equal((await requestJson(`${apiA}/balance`)).channelTHD, "5.0");
+  assert.equal((await requestJson(`${apiA}/balance`)).totalTHD, "95.0");
+  assert.equal((await requestJson(`${apiB}/balance`)).channelTHD, "5.0");
+  assert.equal((await requestJson(`${apiB}/balance`)).totalTHD, "105.0");
 
-  const closing = await nodeB.closeChannel();
+  const closing = await requestJson(`${apiB}/channel/close`, { body: {} });
   assert.equal(closing.status, "CLOSING");
-  await assert.rejects(nodeB.withdraw(), /Challenge period active/);
+  await assert.rejects(requestJson(`${apiB}/withdraw`, { body: {} }), /Challenge period active/);
   for (let i = 0; i < 24; i += 1) await provider.send("evm_mine", []);
-  await nodeB.withdraw();
-  assert.equal((await nodeA.infos()).channel.status, "CLOSED");
-  assert.equal((await nodeB.infos()).channel.status, "CLOSED");
-  assert.equal((await nodeA.balance()).walletTHD, "95.0");
-  assert.equal((await nodeB.balance()).walletTHD, "105.0");
+  await requestJson(`${apiB}/withdraw`, { body: {} });
+  assert.equal((await requestJson(`${apiA}/infos`)).channel.status, "CLOSED");
+  assert.equal((await requestJson(`${apiB}/infos`)).channel.status, "CLOSED");
+  assert.equal((await requestJson(`${apiA}/balance`)).walletTHD, "95.0");
+  assert.equal((await requestJson(`${apiB}/balance`)).walletTHD, "105.0");
 });
