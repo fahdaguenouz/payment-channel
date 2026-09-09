@@ -8,6 +8,7 @@ const {
 } = require("ethers");
 const { artifact } = require("../lib/contracts");
 const { signState } = require("../lib/common");
+const { freePort } = require("./helpers");
 
 const MNEMONIC = "test test test test test test test test test test test junk";
 let server;
@@ -16,14 +17,15 @@ let owner;
 
 test.before(async () => {
   server = ganache.server({ logging: { quiet: true }, wallet: { mnemonic: MNEMONIC } });
-  await server.listen(0, "127.0.0.1");
-  provider = new JsonRpcProvider(`http://127.0.0.1:${server.address().port}`);
+  const port = await freePort();
+  await server.listen(port, "127.0.0.1");
+  provider = new JsonRpcProvider(`http://127.0.0.1:${port}`, undefined, { cacheTimeout: -1 });
   owner = Wallet.fromPhrase(MNEMONIC).connect(provider);
 });
 
 test.after(async () => {
-  provider.destroy();
-  await server.close();
+  if (provider) provider.destroy();
+  if (server) await server.close();
 });
 
 async function fixture() {

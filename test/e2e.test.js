@@ -9,14 +9,16 @@ const ganache = require("ganache");
 const { ContractFactory, JsonRpcProvider, Wallet, parseEther } = require("ethers");
 const { artifact } = require("../lib/contracts");
 const { ThunderNode } = require("../lib/daemon");
+const { freePort } = require("./helpers");
 
 const CHAIN_MNEMONIC = "test test test test test test test test test test test junk";
 
 test("complete audited two-node payment lifecycle", async (context) => {
   const server = ganache.server({ logging: { quiet: true }, wallet: { mnemonic: CHAIN_MNEMONIC } });
-  await server.listen(0, "127.0.0.1");
-  const rpc = `http://127.0.0.1:${server.address().port}`;
-  const provider = new JsonRpcProvider(rpc);
+  const chainPort = await freePort();
+  await server.listen(chainPort, "127.0.0.1");
+  const rpc = `http://127.0.0.1:${chainPort}`;
+  const provider = new JsonRpcProvider(rpc, undefined, { cacheTimeout: -1 });
   const deployer = Wallet.fromPhrase(CHAIN_MNEMONIC).connect(provider);
   const walletA = Wallet.createRandom().connect(provider);
   const walletB = Wallet.createRandom().connect(provider);

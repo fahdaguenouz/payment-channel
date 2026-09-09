@@ -28,7 +28,7 @@ Options:
   --out <file>            Deployment record (default: deployment.json)`);
     return;
   }
-  const provider = new JsonRpcProvider(options.rpc);
+  const provider = new JsonRpcProvider(options.rpc, undefined, { cacheTimeout: -1 });
   const wallet = Wallet.fromPhrase(options.mnemonic).connect(provider);
   const recipients = String(options.recipient || wallet.address).split(",").map((value) => value.trim()).filter(Boolean);
   const factory = new ContractFactory(artifact("THDToken").abi, artifact("THDToken").bytecode, wallet);
